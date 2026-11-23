@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
+    "build": "clang-wasm-copy-assets public/clang && tsc --noEmit && vite build",
     "preview": "vite preview"
   },
   "dependencies": {
