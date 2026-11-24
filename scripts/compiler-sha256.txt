@@ -1,0 +1,5 @@
+1e1b829f03f587a5331f53be6dc97aeee7d21e0627f7d7940bbc26d12bd10b2b  public/compiler/v1/clang22-noeh.gz
+197093ba0b5cfd0104fa17f29520f4df160c33e1fa46495f4b00945f937e7922  public/compiler/v1/iostream.h
+7b1158c35d015a7507f0b82377c9b6b77069f3cbeae5176c30d59b2cf7de7e03  public/compiler/v1/lld22-noeh.gz
+a5117f00a456fda264e183ce36b085a807e3e5412685757103946fc4a57d2d2f  public/compiler/v1/memfs.wasm
+f892b732e04dacf610dfbfd3d74e8d10a2351450c3d2c01b8c0199a5d47cf741  public/compiler/v1/sysroot22.tar.gz
