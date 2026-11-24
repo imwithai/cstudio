@@ -1,0 +1,81 @@
+name: Import original C++ Studio source
+on:
+  push:
+    branches: [main]
+    paths:
+      - "cstudio-source.part*"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  import-original:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+      - name: Extract validated original ZIP
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import hashlib
+          import io
+          import shutil
+          import zipfile
+          from pathlib import Path
+
+          parts = [Path("cstudio-source.part01"), Path("cstudio-source.part02")]
+          if not all(p.is_file() for p in parts):
+              print("Not all ZIP parts are uploaded yet; no changes made.")
+              raise SystemExit(0)
+          payload = b"".join(p.read_bytes() for p in parts)
+          expected = "7bde4b38b2cebeaadf34659d5531da80e3d716d20276bc4c170c62f8980cc49a"
+          if hashlib.sha256(payload).hexdigest() != expected:
+              raise SystemExit("ZIP checksum mismatch. Files were not changed.")
+
+          root = Path.cwd()
+          target = root / ".original-import-temp"
+          target.mkdir(exist_ok=True)
+          with zipfile.ZipFile(io.BytesIO(payload)) as archive:
+              if archive.testzip() is not None:
+                  raise SystemExit("The source ZIP is corrupt.")
+              for item in archive.infolist():
+                  path = Path(item.filename)
+                  if not path.parts or path.parts[0] != "cpp-studio" or ".." in path.parts or path.is_absolute():
+                      raise SystemExit("Unexpected ZIP path: " + item.filename)
+                  dest = target.joinpath(*path.parts[1:])
+                  if item.is_dir():
+                      dest.mkdir(parents=True, exist_ok=True)
+                  else:
+                      dest.parent.mkdir(parents=True, exist_ok=True)
+                      with archive.open(item) as source, dest.open("wb") as output:
+                          shutil.copyfileobj(source, output)
+
+          preserved = {".git", ".github", "vercel.json", ".original-import-temp", "cstudio-source.part01", "cstudio-source.part02"}
+          for item in root.iterdir():
+              if item.name in preserved:
+                  continue
+              if item.is_dir():
+                  shutil.rmtree(item)
+              else:
+                  item.unlink()
+          for item in target.iterdir():
+              destination = root / item.name
+              shutil.move(str(item), str(destination))
+          target.rmdir()
+          for part in parts:
+              part.unlink()
+          print("Original source restored from checksum-verified ZIP.")
+          PY
+      - name: Commit original source
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "Restore original C++ Studio source and bundled compiler"
+            git push origin HEAD:main
+          fi
